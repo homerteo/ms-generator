@@ -83,7 +83,11 @@ type Mutation {
   "Update an Vehicles"
   GeneratorUpdateVehicles(id: ID!, input: GeneratorVehiclesInput!, merge: Boolean!): GeneratorVehicles  
   "Deletes an Vehicles"
-  GeneratorDeleteVehicless(ids: [ID]!): CommandResponse  
+  GeneratorDeleteVehicless(ids: [ID]!): CommandResponse
+    "Start vehicle generation process"
+  GeneratorStartVehicleGeneration: CommandResponse
+  "Stop vehicle generation process"
+  GeneratorStopVehicleGeneration: CommandResponse
 }
 
 

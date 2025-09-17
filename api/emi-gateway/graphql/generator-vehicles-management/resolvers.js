@@ -23,7 +23,6 @@ function getResponseFromBackEnd$(response) {
                     const err = new Error();
                     err.name = 'Error';
                     err.message = resp.result.error;
-                    // this[Symbol()] = resp.result.error;
                     Error.captureStackTrace(err, 'Error');
                     throw err;
                 }
@@ -89,6 +88,12 @@ module.exports = {
         },
         GeneratorDeleteVehicless(root, args, context) {
             return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'Vehicles', 'GeneratorDeleteVehicless').toPromise();
+        },
+                GeneratorStartVehicleGeneration(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'Vehicles', 'GeneratorStartVehicleGeneration').toPromise();
+        },
+        GeneratorStopVehicleGeneration(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'Vehicles', 'GeneratorStopVehicleGeneration').toPromise();
         },
     },
 
