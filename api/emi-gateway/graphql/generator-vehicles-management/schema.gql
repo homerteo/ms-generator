@@ -1,0 +1,93 @@
+type CommandResponse {
+  "Response code"
+  code: Int
+  "Response message"
+  message: String
+}
+
+type GeneratorVehicles {
+  "Vehicles ID"
+  id: ID!
+  "name"
+  name: String!
+  "organization id"
+  organizationId: String!
+  "Vehicles description"
+  description: String
+  "Vehicles active flag"
+  active: Boolean!  
+  "object metadata"
+  metadata: GeneratorVehiclesMetadata
+}
+
+type GeneratorVehiclesMetadata {
+    createdBy: String
+		createdAt: BigInt
+		updatedBy: String
+		updatedAt: BigInt
+}
+
+type GeneratorVehiclesListing {
+  "Listing"
+  listing: [GeneratorVehicles]
+  "query total result count"
+  queryTotalResultCount: Int,  
+}
+
+
+input GeneratorVehiclesFilterInput {
+  "Name"
+  name: String
+  "organization id"
+  organizationId: String!
+  "Vehicles active flag"
+  active: Boolean
+}
+
+input GeneratorVehiclesPaginationInput {
+  "Page"
+  page: Int!
+  "Count"
+  count: Int!
+  "query total result count flag"
+  queryTotalResultCount: Boolean
+}
+
+input GeneratorVehiclesSortInput {
+  field: String!,
+  asc: Boolean!,
+}
+
+input GeneratorVehiclesInput {
+  "name"
+  name: String
+  "organization id"
+  organizationId: String!
+  "Vehicles description"
+  description: String
+  "Vehicles active flag"
+  active: Boolean
+}
+
+
+type Query {
+  "Get Vehicless filtered "
+  GeneratorVehiclesListing(filterInput: GeneratorVehiclesFilterInput, paginationInput: GeneratorVehiclesPaginationInput, sortInput: GeneratorVehiclesSortInput): GeneratorVehiclesListing
+  "Get Vehicles by its id"
+  GeneratorVehicles(id: ID!, organizationId: String!): GeneratorVehicles
+}
+
+type Mutation {
+  "Create a new Vehicles"
+  GeneratorCreateVehicles(input: GeneratorVehiclesInput!): GeneratorVehicles
+  "Update an Vehicles"
+  GeneratorUpdateVehicles(id: ID!, input: GeneratorVehiclesInput!, merge: Boolean!): GeneratorVehicles  
+  "Deletes an Vehicles"
+  GeneratorDeleteVehicless(ids: [ID]!): CommandResponse  
+}
+
+
+type Subscription {
+  "This events is triggered when a vehicles updated or deleted"
+  GeneratorVehiclesModified(id: ID!): GeneratorVehicles
+}
