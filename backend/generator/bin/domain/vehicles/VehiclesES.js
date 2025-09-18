@@ -24,7 +24,7 @@ class VehiclesES {
    */
   generateEventProcessorMap() {
     return {
-      Vehicle: { // ← Cambiar de "Vehicles" a "Vehicle" 
+      Vehicle: { 
         Generated: { fn: instance.handleVehicleGenerated$, instance },
       },
       Vehicles: { // ← Mantener este para VehiclesModified

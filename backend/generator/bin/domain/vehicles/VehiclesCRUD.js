@@ -104,6 +104,11 @@ class VehiclesCRUD {
             attributes: REQUIRED_ATTRIBUTES,
           },
         },
+        "emigateway.graphql.query.GeneratorGeneratedVehiclesListing": {
+          fn: instance.getGeneratedVehiclesListing$,
+          instance,
+          jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES },
+        },
       },
     };
   }
@@ -340,7 +345,9 @@ class VehiclesCRUD {
       map(() => {
         // Force reset state if needed
         if (this.isGenerating) {
-          ConsoleLogger.i("VehiclesCRUD.startVehicleGeneration$ - Forcing reset of previous generation");
+          ConsoleLogger.i(
+            "VehiclesCRUD.startVehicleGeneration$ - Forcing reset of previous generation"
+          );
           this.isGenerating = false;
           if (this.stopGeneration$) {
             this.stopGeneration$.next();
@@ -412,13 +419,15 @@ class VehiclesCRUD {
    * Start the actual generation process using RxJS
    */
   startGenerationProcess() {
-    ConsoleLogger.i("VehiclesCRUD.startGenerationProcess - Starting vehicle generation every 50ms");
+    ConsoleLogger.i(
+      "VehiclesCRUD.startGenerationProcess - Starting vehicle generation every 50ms"
+    );
     this.generationSubscription = interval(50)
       .pipe(
         takeUntil(this.stopGeneration$),
         map(() => {
           const vehicle = this.generateRandomVehicle();
-          ConsoleLogger.i("Generated vehicle:", vehicle.plate);
+          ConsoleLogger.i("Generated vehicle:", vehicle.plate || `${vehicle.type}-${vehicle.year}`);
           return vehicle;
         }),
         switchMap((vehicleData) =>
@@ -447,6 +456,7 @@ class VehiclesCRUD {
     const powerSources = ["Electric", "Gasoline", "Hybrid", "Diesel"];
 
     const vehicleData = {
+      plate: this.generateRandomPlate(), 
       type: types[Math.floor(Math.random() * types.length)],
       powerSource:
         powerSources[Math.floor(Math.random() * powerSources.length)],
@@ -456,6 +466,23 @@ class VehiclesCRUD {
     };
 
     return vehicleData;
+  }
+
+  generateRandomPlate() {
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numbers = "0123456789";
+
+    let plate = "";
+    // 3 letras
+    for (let i = 0; i < 3; i++) {
+      plate += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    // 3 números
+    for (let i = 0; i < 3; i++) {
+      plate += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    }
+
+    return plate;
   }
 
   /**
@@ -476,6 +503,21 @@ class VehiclesCRUD {
     const aid = this.generateVehicleHash(vehicleData);
     const timestamp = new Date().toISOString();
 
+    const vehicleForDB = {
+      ...vehicleData,
+      name: `Vehicle ${vehicleData.type} ${vehicleData.year}`,
+      organizationId: "generator-system", // Organización del sistema generador
+      description: `Generated ${vehicleData.type} with ${vehicleData.hp}HP`,
+      active: true,
+      generatedAt: new Date(),
+      metadata: {
+        createdBy: "SYSTEM",
+        createdAt: Date.now(),
+        updatedBy: "SYSTEM",
+        updatedAt: Date.now(),
+      },
+    };
+
     const event = new Event({
       aggregateType: "Vehicle",
       aggregateId: aid,
@@ -485,9 +527,13 @@ class VehiclesCRUD {
       data: vehicleData,
     });
 
-    return eventSourcing.emitEvent$(event, { 
-      autoAcknowledgeKey: process.env.MICROBACKEND_KEY 
-    }).pipe(
+    return VehiclesDA.createGeneratedVehicle$(aid, vehicleForDB, "SYSTEM").pipe(
+      mergeMap(() =>
+        // Después de guardar en DB, publicar eventos
+        eventSourcing.emitEvent$(event, {
+          autoAcknowledgeKey: process.env.MICROBACKEND_KEY,
+        })
+      ),
       mergeMap(() =>
         broker.send$(MATERIALIZED_VIEW_TOPIC, "VehicleGenerated", {
           at: "Vehicle",
@@ -496,6 +542,44 @@ class VehiclesCRUD {
           timestamp: timestamp,
           data: vehicleData,
         })
+      ),
+      catchError((error) => {
+        ConsoleLogger.e("Error saving/publishing vehicle:", error);
+        return EMPTY; // Continuar la generación sin interrumpir
+      })
+    );
+  }
+
+  /**
+   * Gets the Generated Vehicles list
+   */
+  getGeneratedVehiclesListing$({ args }, authToken) {
+    const { filterInput, paginationInput, sortInput } = args;
+    const { queryTotalResultCount = false } = paginationInput || {};
+
+    return forkJoin(
+      VehiclesDA.getGeneratedVehiclesList$(
+        filterInput,
+        paginationInput,
+        sortInput
+      ).pipe(toArray()),
+      queryTotalResultCount
+        ? VehiclesDA.getGeneratedVehiclesSize$(filterInput)
+        : of(undefined)
+    ).pipe(
+      map(([listing, queryTotalResultCount]) => ({
+        listing,
+        queryTotalResultCount,
+      })),
+      mergeMap((rawResponse) =>
+        CqrsResponseHelper.buildSuccessResponse$(rawResponse)
+      ),
+      catchError((err) =>
+        iif(
+          () => err.name === "MongoTimeoutError",
+          throwError(err),
+          CqrsResponseHelper.handleError$(err)
+        )
       )
     );
   }

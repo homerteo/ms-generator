@@ -101,6 +101,8 @@ type Query {
   GeneratorVehiclesListing(filterInput: GeneratorVehiclesFilterInput, paginationInput: GeneratorVehiclesPaginationInput, sortInput: GeneratorVehiclesSortInput): GeneratorVehiclesListing
   "Get Vehicles by its id"
   GeneratorVehicles(id: ID!, organizationId: String!): GeneratorVehicles
+    "Get Generated Vehicles filtered"
+  GeneratorGeneratedVehiclesListing(filterInput: GeneratorVehiclesFilterInput, paginationInput: GeneratorVehiclesPaginationInput, sortInput: GeneratorVehiclesSortInput): GeneratorVehiclesListing
 }
 
 type Mutation {
