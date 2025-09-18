@@ -119,6 +119,20 @@ module.exports = {
                         : false;
                 }
             )
+        },
+        VehicleGenerated: {
+            subscribe: (payload, variables, context, info) => {
+                //Checks the roles of the user, if the user does not have at least one of the required roles, an error will be thrown
+                RoleValidator.checkAndThrowError(
+                    context.authToken.realm_access.roles,
+                    READ_ROLES,
+                    "Generator",
+                    "VehicleGenerated",
+                    PERMISSION_DENIED_ERROR_CODE,
+                    "Permission denied"
+                );
+                return pubsub.asyncIterator("VehicleGenerated");
+            }
         }
     }
 };
@@ -135,6 +149,31 @@ const eventDescriptors = [
             console.log(`Error processing ${descriptor.backendEventName}`), // OPTIONAL, only use if needed
         onEvent: (evt, descriptor) =>
             console.log(`Event of type  ${descriptor.backendEventName} arrived`) // OPTIONAL, only use if needed
+    },
+    {
+        backendEventName: "VehicleGenerated", 
+        gqlSubscriptionName: "VehicleGenerated",
+        dataExtractor: evt => {
+            // Extract the inner data and restructure to match frontend expectations
+            const innerData = evt.data;
+            return {
+                at: innerData.at,
+                et: innerData.et,
+                aid: innerData.aid,
+                timestamp: innerData.timestamp,
+                data: innerData.data
+            };
+        },
+        onError: (error, descriptor) =>
+            console.log(`Error processing ${descriptor.backendEventName}:`, error),
+        onEvent: (evt, descriptor) => {
+            console.log(`Vehicle generated event arrived:`, {
+                aid: evt.data.aid,
+                timestamp: evt.data.timestamp,
+                data: evt.data.data
+            });
+            console.log(`Publishing to WebSocket subscription: VehicleGenerated`);
+        }
     }
 ];
 
@@ -152,6 +191,7 @@ eventDescriptors.forEach(descriptor => {
                 ? descriptor.dataExtractor(evt)
                 : evt.data;
             pubsub.publish(descriptor.gqlSubscriptionName, payload);
+            console.log(`Published to subscription ${descriptor.gqlSubscriptionName}:`, payload);
         },
 
         error => {

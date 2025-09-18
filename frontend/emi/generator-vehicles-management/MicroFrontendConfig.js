@@ -12,7 +12,7 @@ export const MicroFrontendConfig = {
     routes: [
         { 
             path: '/vehicles-mng/vehicless/:vehiclesId/:vehiclesHandle?',
-            component: React.lazy(() => import('./vehicles/Vehicles'))
+            component: React.lazy(() => import('./vehicles/Vehicles.js'))
         },
         {
             path: '/vehicles-mng/vehicless',

@@ -50,7 +50,7 @@ export const GeneratorDeleteVehicles = (variables) => ({
 
 export const GeneratorUpdateVehicles = (variables) => ({
     mutation: gql`
-            ,mutation  GeneratorUpdateVehicles($id: ID!,$input: GeneratorVehiclesInput!, $merge: Boolean!){
+            mutation  GeneratorUpdateVehicles($id: ID!,$input: GeneratorVehiclesInput!, $merge: Boolean!){
                 GeneratorUpdateVehicles(id:$id, input: $input, merge:$merge ){
                     id,organizationId,name,description,active
                 }
@@ -63,6 +63,38 @@ export const onGeneratorVehiclesModified = (variables) => ([
             GeneratorVehiclesModified(id:$id){    
                 id,organizationId,name,description,active,
                 metadata{ createdBy, createdAt, updatedBy, updatedAt }
+            }
+    }`,
+    { variables }
+])
+
+export const GeneratorStartVehicleGeneration = (variables) => ({
+    mutation: gql`
+            mutation GeneratorStartVehicleGeneration{
+                GeneratorStartVehicleGeneration{
+                    code,message
+                }
+            }`,
+    variables
+})
+
+export const GeneratorStopVehicleGeneration = (variables) => ({
+    mutation: gql`
+            mutation GeneratorStopVehicleGeneration{
+                GeneratorStopVehicleGeneration{
+                    code,message
+                }
+            }`,
+    variables
+})
+
+export const onVehicleGenerated = (variables) => ([
+    gql`subscription onVehicleGenerated{
+            VehicleGenerated{    
+                at,et,aid,timestamp,
+                data{
+                    type,powerSource,hp,year,topSpeed
+                }
             }
     }`,
     { variables }

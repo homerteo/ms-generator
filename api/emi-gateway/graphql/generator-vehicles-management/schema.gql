@@ -27,6 +27,32 @@ type GeneratorVehiclesMetadata {
 		updatedAt: BigInt
 }
 
+type VehicleGeneratedData {
+  "Vehicle type"
+  type: String!
+  "Power source (electric, diesel, gas)"
+  powerSource: String!
+  "Horsepower"
+  hp: Int!
+  "Year of manufacture"
+  year: Int!
+  "Top speed in km/h"
+  topSpeed: Int!
+}
+
+type VehicleGeneratedEvent {
+  "Aggregate type"
+  at: String!
+  "Event type"
+  et: String!
+  "Aggregate ID"
+  aid: String!
+  "Timestamp"
+  timestamp: BigInt!
+  "Vehicle data"
+  data: VehicleGeneratedData!
+}
+
 type GeneratorVehiclesListing {
   "Listing"
   listing: [GeneratorVehicles]
@@ -94,4 +120,6 @@ type Mutation {
 type Subscription {
   "This events is triggered when a vehicles updated or deleted"
   GeneratorVehiclesModified(id: ID!): GeneratorVehicles
+  "This event is triggered when a vehicle is generated"
+  VehicleGenerated: VehicleGeneratedEvent
 }

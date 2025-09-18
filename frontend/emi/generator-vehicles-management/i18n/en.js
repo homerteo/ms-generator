@@ -1,7 +1,7 @@
 export default {
   navigation: {
     'settings': 'Settings',
-    'generator-vehicles-management': 'Vehicless',
+    'generator-vehicles-management': 'Vehicles Management',
   },
   vehicless: {
     vehicless: 'Vehicless',
@@ -49,5 +49,30 @@ export default {
         required: "Name is required",
       }
     },
-  }
+  },
+    vehicle_generator: {
+    title: 'FLEET VEHICLE GENERATOR',
+    generator_tab: 'Vehicle Generator',
+    controls: 'Controls',
+    start_simulation: 'Start Simulation',
+    stop_simulation: 'Stop Simulation',
+    status: 'Status',
+    running: 'Running',
+    stopped: 'Stopped',
+    vehicles_generated: 'Vehicles Generated',
+    in_table: 'In Table',
+    real_time_vehicles: 'Real-Time Generated Vehicles',
+    no_vehicles_generated: 'No vehicles generated yet',
+    start_simulation_to_see_data: 'Start the simulation to see real-time data',
+    generation_started: 'Vehicle generation started successfully',
+    generation_stopped: 'Vehicle generation stopped successfully',
+    table: {
+      year: 'Year',
+      type: 'Type',
+      horsepower: 'Power (HP)',
+      top_speed: 'Top Speed (km/h)',
+      power_source: 'Power Source',
+      timestamp: 'Generated At'
+    }
+  },
 };

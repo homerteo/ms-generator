@@ -22,7 +22,7 @@ const { CustomError, INTERNAL_SERVER_ERROR_CODE, PERMISSION_DENIED } =
 const { brokerFactory } = require("@nebulae/backend-node-tools").broker;
 
 const broker = brokerFactory();
-const eventSourcing = require("../../tools/event-sourcing").eventSourcing;
+const { eventSourcing } = require("../../tools/event-sourcing");
 const VehiclesDA = require("./data-access/VehiclesDA");
 
 const READ_ROLES = ["VEHICLES_READ"];
@@ -338,13 +338,18 @@ class VehiclesCRUD {
   startVehicleGeneration$({ root, args, jwt }, authToken) {
     return of({}).pipe(
       map(() => {
+        // Force reset state if needed
         if (this.isGenerating) {
-          throw new CustomError(
-            "Generation already running",
-            "VehiclesCRUD.startVehicleGeneration$",
-            INTERNAL_SERVER_ERROR_CODE,
-            "Vehicle generation is already in progress"
-          );
+          ConsoleLogger.i("VehiclesCRUD.startVehicleGeneration$ - Forcing reset of previous generation");
+          this.isGenerating = false;
+          if (this.stopGeneration$) {
+            this.stopGeneration$.next();
+            this.stopGeneration$.complete();
+          }
+          if (this.generationSubscription) {
+            this.generationSubscription.unsubscribe();
+            this.generationSubscription = null;
+          }
         }
 
         this.isGenerating = true;
@@ -353,7 +358,7 @@ class VehiclesCRUD {
         // Start the generation process
         this.startGenerationProcess();
 
-        return { message: "Vehicle generation started" };
+        return { code: 200, message: "Vehicle generation started" };
       }),
       mergeMap((rawResponse) =>
         CqrsResponseHelper.buildSuccessResponse$(rawResponse)
@@ -391,7 +396,7 @@ class VehiclesCRUD {
           this.generationSubscription = null;
         }
 
-        return { message: "Vehicle generation stopped" };
+        return { code: 200, message: "Vehicle generation stopped" };
       }),
       mergeMap((rawResponse) =>
         CqrsResponseHelper.buildSuccessResponse$(rawResponse)
@@ -407,10 +412,15 @@ class VehiclesCRUD {
    * Start the actual generation process using RxJS
    */
   startGenerationProcess() {
+    ConsoleLogger.i("VehiclesCRUD.startGenerationProcess - Starting vehicle generation every 50ms");
     this.generationSubscription = interval(50)
       .pipe(
         takeUntil(this.stopGeneration$),
-        map(() => this.generateRandomVehicle()),
+        map(() => {
+          const vehicle = this.generateRandomVehicle();
+          ConsoleLogger.i("Generated vehicle:", vehicle.plate);
+          return vehicle;
+        }),
         switchMap((vehicleData) =>
           this.publishVehicleGeneratedEvent(vehicleData)
         )
@@ -475,9 +485,11 @@ class VehiclesCRUD {
       data: vehicleData,
     });
 
-    return eventSourcing.eventStore.emitEvent$(event).pipe(
+    return eventSourcing.emitEvent$(event, { 
+      autoAcknowledgeKey: process.env.MICROBACKEND_KEY 
+    }).pipe(
       mergeMap(() =>
-        broker.send$("fleet/vehicles/generated", "VehicleGenerated", {
+        broker.send$(MATERIALIZED_VIEW_TOPIC, "VehicleGenerated", {
           at: "Vehicle",
           et: "Generated",
           aid: aid,
