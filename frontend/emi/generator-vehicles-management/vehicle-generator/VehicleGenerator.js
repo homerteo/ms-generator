@@ -9,7 +9,7 @@ import {
     Icon,
     Chip
 } from '@material-ui/core';
-import { FuseAnimate, FusePageCarded } from '@fuse';
+import { FuseAnimate } from '@fuse';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMutation, useSubscription } from "@apollo/react-hooks";
 import { makeStyles } from '@material-ui/styles';

@@ -154,7 +154,6 @@ const eventDescriptors = [
         backendEventName: "VehicleGenerated", 
         gqlSubscriptionName: "VehicleGenerated",
         dataExtractor: evt => {
-            // Extract the inner data and restructure to match frontend expectations
             const innerData = evt.data;
             return {
                 at: innerData.at,
