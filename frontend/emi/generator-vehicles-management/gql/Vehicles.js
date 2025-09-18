@@ -1,4 +1,5 @@
 import { gql } from 'apollo-boost';
+import { useQuery } from '@apollo/react-hooks';
 
 export const GeneratorVehiclesListing = (variables) => ({
     query: gql`
@@ -88,14 +89,48 @@ export const GeneratorStopVehicleGeneration = (variables) => ({
     variables
 })
 
-export const onVehicleGenerated = (variables) => ([
-    gql`subscription onVehicleGenerated{
-            VehicleGenerated{    
-                at,et,aid,timestamp,
-                data{
-                    type,powerSource,hp,year,topSpeed
+export const GeneratorGeneratedVehiclesListing = (variables) => ({
+    query: gql`
+        query GeneratorGeneratedVehiclesListing($filterInput: GeneratorVehiclesFilterInput, $paginationInput: GeneratorVehiclesPaginationInput, $sortInput: GeneratorVehiclesSortInput) {
+            GeneratorGeneratedVehiclesListing(filterInput: $filterInput, paginationInput: $paginationInput, sortInput: $sortInput) {
+                listing {
+                    id
+                    plate
+                    type
+                    powerSource
+                    hp
+                    year
+                    topSpeed
+                    generatedAt
+                    name
+                    description
+                    active
                 }
+                queryTotalResultCount
             }
-    }`,
-    { variables }
-])
+        }
+    `,
+    variables,
+    fetchPolicy: 'network-only',
+});
+
+export const VehicleGeneratedSubscription = gql`
+    subscription VehicleGenerated {
+        VehicleGenerated {
+            aid
+            timestamp
+            data {
+                plate
+                type
+                powerSource
+                hp
+                year
+                topSpeed
+            }
+        }
+    }
+`;
+
+export function onVehicleGenerated() {
+    return [VehicleGeneratedSubscription];
+}

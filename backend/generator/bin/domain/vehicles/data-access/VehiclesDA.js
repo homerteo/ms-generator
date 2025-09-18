@@ -230,11 +230,11 @@ class VehiclesDA {
     );
   }
 
-    /**
+  /**
    * Get generated vehicles with pagination
-   * @param {*} filter 
-   * @param {*} pagination 
-   * @param {*} sortInput 
+   * @param {*} filter
+   * @param {*} pagination
+   * @param {*} sortInput
    */
   static getGeneratedVehiclesList$(filter = {}, pagination = {}, sortInput) {
     const collection = mongoDB.db.collection(CollectionName);
@@ -243,7 +243,7 @@ class VehiclesDA {
     // Filtro específico para vehículos generados
     const query = {
       organizationId: "generator-system",
-      generatedAt: { $exists: true }
+      generatedAt: { $exists: true },
     };
 
     if (filter.type) {
@@ -253,18 +253,8 @@ class VehiclesDA {
       query["powerSource"] = filter.powerSource;
     }
 
-    const projection = { 
-      type: 1, 
-      powerSource: 1, 
-      hp: 1, 
-      year: 1, 
-      topSpeed: 1,
-      generatedAt: 1,
-      active: 1 
-    };
-
     let cursor = collection
-      .find(query, { projection })
+      .find(query)
       .skip(count * page)
       .limit(count);
 
@@ -276,9 +266,9 @@ class VehiclesDA {
     }
     cursor = cursor.sort(sort);
 
-    return mongoDB.extractAllFromMongoCursor$(cursor).pipe(
-      map(res => ({ ...res, id: res._id }))
-    );
+    return mongoDB
+      .extractAllFromMongoCursor$(cursor)
+      .pipe(map((res) => ({ ...res, id: res._id })));
   }
 
   /**
@@ -288,7 +278,7 @@ class VehiclesDA {
     const collection = mongoDB.db.collection(CollectionName);
     const query = {
       organizationId: "generator-system",
-      generatedAt: { $exists: true }
+      generatedAt: { $exists: true },
     };
 
     if (filter.type) {

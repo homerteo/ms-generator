@@ -41,6 +41,11 @@ const useStyles = makeStyles(theme => ({
         textAlign: 'center',
         padding: theme.spacing(4),
         color: theme.palette.text.secondary
+    },
+    plateCell: {
+        fontFamily: 'monospace',
+        fontWeight: 'bold',
+        fontSize: '0.9rem'
     }
 }));
 
@@ -72,6 +77,9 @@ const VehicleRow = memo(({ vehicle, index, classes }) => {
             key={vehicle.id}
             className={index % 2 === 0 ? classes.evenRow : classes.oddRow}
         >
+            <TableCell align="center" className={classes.plateCell}>
+                {vehicle.plate || 'N/A'}
+            </TableCell>
             <TableCell align="center">
                 <Typography variant="body2">{vehicle.year}</Typography>
             </TableCell>
@@ -112,24 +120,27 @@ const VehicleRow = memo(({ vehicle, index, classes }) => {
 
 VehicleRow.displayName = 'VehicleRow';
 
-function VehicleGeneratorTable({ vehicles }) {
+function VehicleGeneratorTable({ vehicles, isGenerating }) {
     const classes = useStyles();
     const user = useSelector(({ auth }) => auth.user);
     const T = new MDText(i18n.get(user.locale));
 
     // Solo mostrar los últimos 100 vehículos para rendimiento
     const displayVehicles = useMemo(() => {
-        return vehicles.slice(0, 100);
+        return vehicles ? vehicles.slice(0, 100) : [];
     }, [vehicles]);
 
     if (!vehicles || vehicles.length === 0) {
         return (
             <div className={classes.noData}>
                 <Typography variant="h6">
-                    {T.translate("vehicle_generator.no_vehicles_generated")}
+                    {isGenerating ? 
+                        T.translate("vehicle_generator.generating_vehicles") :
+                        T.translate("vehicle_generator.no_vehicles_generated")
+                    }
                 </Typography>
                 <Typography variant="body2">
-                    {T.translate("vehicle_generator.start_simulation_to_see_data")}
+                    {!isGenerating && T.translate("vehicle_generator.start_simulation_to_see_data")}
                 </Typography>
             </div>
         );
@@ -140,6 +151,9 @@ function VehicleGeneratorTable({ vehicles }) {
             <Table stickyHeader size="small">
                 <TableHead>
                     <TableRow className={classes.tableHeader}>
+                        <TableCell align="center" className="font-bold">
+                            {T.translate("vehicle_generator.table.plate")}
+                        </TableCell>
                         <TableCell align="center" className="font-bold">
                             {T.translate("vehicle_generator.table.year")}
                         </TableCell>

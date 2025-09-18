@@ -6,7 +6,7 @@ type CommandResponse {
 }
 
 type GeneratorVehicles {
-  "Vehicles ID"
+"Vehicles ID"
   id: ID!
   "name"
   name: String!
@@ -15,9 +15,23 @@ type GeneratorVehicles {
   "Vehicles description"
   description: String
   "Vehicles active flag"
-  active: Boolean!  
+  active: Boolean!
   "object metadata"
   metadata: GeneratorVehiclesMetadata
+    "Vehicle plate number"
+  plate: String
+  "Vehicle type"
+  type: String
+  "Power source (electric, diesel, gas)"
+  powerSource: String
+  "Horsepower"
+  hp: Int
+  "Year of manufacture"
+  year: Int
+  "Top speed in km/h"
+  topSpeed: Int
+  "Generated timestamp"
+  generatedAt: String
 }
 
 type GeneratorVehiclesMetadata {
@@ -65,7 +79,7 @@ input GeneratorVehiclesFilterInput {
   "Name"
   name: String
   "organization id"
-  organizationId: String!
+  organizationId: String
   "Vehicles active flag"
   active: Boolean
 }
