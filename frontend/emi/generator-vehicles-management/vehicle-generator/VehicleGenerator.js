@@ -16,7 +16,7 @@ import { makeStyles } from "@material-ui/styles";
 import { MDText } from "i18n-react";
 import i18n from "../i18n";
 import * as AppActions from "app/store/actions";
-import VehicleGeneratorTable from "./VehicleGeneratorTable";
+import VehicleVirtualizedTable from "./VehicleVirtualizedTable";
 import {
   GeneratorStartVehicleGeneration,
   GeneratorStopVehicleGeneration,
@@ -286,7 +286,7 @@ function VehicleGenerator() {
             <Typography variant="h6" className="mb-16">
               {T.translate("vehicle_generator.real_time_vehicles")} ({generatedVehicles.length})
             </Typography>
-            <VehicleGeneratorTable
+            <VehicleVirtualizedTable
               vehicles={generatedVehicles}
               isGenerating={isGenerating}
             />
