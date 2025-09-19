@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Paper,
   Button,
@@ -24,7 +24,6 @@ import {
 } from "../gql/Vehicles";
 
 const useStyles = makeStyles((theme) => ({
-  // ... existing styles ...
   header: {
     background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     color: "white",
@@ -72,14 +71,10 @@ function VehicleGenerator() {
   const user = useSelector(({ auth }) => auth.user);
   const T = new MDText(i18n.get(user.locale));
 
-  // Estado local
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVehicles, setGeneratedVehicles] = useState([]);
   const [vehicleCount, setVehicleCount] = useState(0);
-  const [lastVehicleId, setLastVehicleId] = useState(null);
-  const [debugInfo, setDebugInfo] = useState("Esperando datos...");
 
-  // GraphQL mutations
   const [startGeneration, startGenerationResult] = useMutation(
     GeneratorStartVehicleGeneration({}).mutation
   );
@@ -87,101 +82,51 @@ function VehicleGenerator() {
     GeneratorStopVehicleGeneration({}).mutation
   );
 
-  // Query para obtener vehículos con polling - SIN filtro organizationId
-  const { data: vehiclesData, refetch, loading, error } = useQuery(
+  const { data: vehiclesData, loading, error } = useQuery(
     GeneratorGeneratedVehiclesListing({
-      filterInput: {}, // ← QUITAR organizationId completamente
+      filterInput: { organizationId: "generator-system" },
       paginationInput: { page: 0, count: 100 },
       sortInput: { field: "generatedAt", asc: false },
     }).query,
     {
       variables: {
-        filterInput: {}, // ← QUITAR organizationId completamente
+        filterInput: { organizationId: "generator-system" },
         paginationInput: { page: 0, count: 100 },
         sortInput: { field: "generatedAt", asc: false },
       },
-      pollInterval: isGenerating ? 500 : 0, // ← Aumentar a 500ms para ver mejor
+      pollInterval: isGenerating ? 500 : 0,
       fetchPolicy: "network-only",
       notifyOnNetworkStatusChange: true,
       onCompleted: (data) => {
-        console.log("=== QUERY COMPLETED ===");
-        console.log("Full query response:", JSON.stringify(data, null, 2));
-        
-        setDebugInfo(`Query completada: ${JSON.stringify(data)}`);
-        
         if (data?.GeneratorGeneratedVehiclesListing?.listing) {
           const vehicles = data.GeneratorGeneratedVehiclesListing.listing;
-          console.log("Vehicles found:", vehicles.length);
-          console.log("Raw vehicles from database:", vehicles);
-
-          // Transformar datos para la tabla
-          const transformedVehicles = vehicles.map((vehicle) => {
-            console.log("Processing vehicle:", vehicle);
-            return {
-              id: vehicle.id,
-              timestamp: vehicle.generatedAt || new Date().toISOString(),
-              plate: vehicle.plate || `GEN${Math.floor(Math.random() * 1000)}`,
-              type: vehicle.type || "Unknown",
-              powerSource: vehicle.powerSource || "Unknown",
-              hp: vehicle.hp || 0,
-              year: vehicle.year || 0,
-              topSpeed: vehicle.topSpeed || 0,
-            };
-          });
-
-          console.log("Transformed vehicles:", transformedVehicles);
-          
+          const transformedVehicles = vehicles.map((vehicle) => ({
+            id: vehicle.id,
+            timestamp: vehicle.generatedAt || new Date().toISOString(),
+            plate: vehicle.plate || "",
+            type: vehicle.type || "",
+            powerSource: vehicle.powerSource || "",
+            hp: vehicle.hp || 0,
+            year: vehicle.year || 0,
+            topSpeed: vehicle.topSpeed || 0,
+          }));
           setGeneratedVehicles(transformedVehicles);
           setVehicleCount(transformedVehicles.length);
-
-          // Detectar nuevos vehículos
-          if (
-            transformedVehicles.length > 0 &&
-            transformedVehicles[0].id !== lastVehicleId
-          ) {
-            console.log("New vehicle detected:", transformedVehicles[0]);
-            setLastVehicleId(transformedVehicles[0].id);
-          }
-        } else {
-          console.log("No vehicles listing found in response");
-          setDebugInfo("No hay datos en GeneratorGeneratedVehiclesListing.listing");
         }
-      },
-      onError: (error) => {
-        console.error("=== QUERY ERROR ===");
-        console.error("GraphQL Error:", error);
-        setDebugInfo(`Error: ${error.message}`);
       },
     }
   );
 
-  // Log del estado del query
-  useEffect(() => {
-    console.log("=== QUERY STATUS ===");
-    console.log("Loading:", loading);
-    console.log("Error:", error);
-    console.log("Data:", vehiclesData);
-  }, [loading, error, vehiclesData]);
-
-  // Manejar inicio de generación
   const handleStartGeneration = useCallback(() => {
-    console.log("Starting vehicle generation...");
     setGeneratedVehicles([]);
     setVehicleCount(0);
-    setLastVehicleId(null);
-    setDebugInfo("Iniciando generación...");
-    
     startGeneration();
   }, [startGeneration]);
 
-  // Manejar detención de generación
   const handleStopGeneration = useCallback(() => {
-    console.log("Stopping vehicle generation...");
-    setDebugInfo("Deteniendo generación...");
     stopGeneration();
   }, [stopGeneration]);
 
-  // Manejar respuesta de inicio de generación
   useEffect(() => {
     if (
       startGenerationResult.data &&
@@ -189,19 +134,15 @@ function VehicleGenerator() {
     ) {
       const { code, message } =
         startGenerationResult.data.GeneratorStartVehicleGeneration;
-      console.log("Start generation response:", { code, message });
-
       if (code === 200) {
         setIsGenerating(true);
-        setDebugInfo("Generación iniciada, esperando datos...");
         dispatch(
           AppActions.showMessage({
-            message: "Generación de vehículos iniciada",
+            message: T.translate("vehicle_generator.generation_started"),
             variant: "success",
           })
         );
       } else {
-        setDebugInfo(`Error al iniciar: ${message}`);
         dispatch(
           AppActions.showMessage({
             message: message,
@@ -210,9 +151,8 @@ function VehicleGenerator() {
         );
       }
     }
-  }, [startGenerationResult.data, dispatch]);
+  }, [startGenerationResult.data, dispatch, T]);
 
-  // Manejar respuesta de detención de generación
   useEffect(() => {
     if (
       stopGenerationResult.data &&
@@ -220,19 +160,15 @@ function VehicleGenerator() {
     ) {
       const { code, message } =
         stopGenerationResult.data.GeneratorStopVehicleGeneration;
-      console.log("Stop generation response:", { code, message });
-
       if (code === 200) {
         setIsGenerating(false);
-        setDebugInfo("Generación detenida");
         dispatch(
           AppActions.showMessage({
-            message: "Generación de vehículos detenida",
+            message: T.translate("vehicle_generator.generation_stopped"),
             variant: "success",
           })
         );
       } else {
-        setDebugInfo(`Error al detener: ${message}`);
         dispatch(
           AppActions.showMessage({
             message: message,
@@ -241,18 +177,15 @@ function VehicleGenerator() {
         );
       }
     }
-  }, [stopGenerationResult.data, dispatch]);
+  }, [stopGenerationResult.data, dispatch, T]);
 
-  // Manejar errores de mutations
   useEffect(() => {
     const error = startGenerationResult.error || stopGenerationResult.error;
     if (error) {
-      console.error("GraphQL error:", error);
       const errMessage =
         error.graphQLErrors && error.graphQLErrors.length > 0
           ? error.graphQLErrors[0].message
           : error.message;
-      setDebugInfo(`Error GraphQL: ${errMessage}`);
       dispatch(
         AppActions.showMessage({
           message: errMessage,
@@ -268,7 +201,7 @@ function VehicleGenerator() {
         <Card className={classes.controlCard}>
           <CardContent>
             <Typography variant="h6" className="mb-16">
-              🔧 Generador de Vehículos - Modo Debug
+              {T.translate("vehicle_generator.title")}
             </Typography>
             <Grid container spacing={2} alignItems="center">
               <Grid item>
@@ -279,7 +212,7 @@ function VehicleGenerator() {
                   onClick={handleStartGeneration}
                   disabled={isGenerating || startGenerationResult.loading}
                 >
-                  Iniciar Simulación
+                  {T.translate("vehicle_generator.start_simulation")}
                 </Button>
               </Grid>
               <Grid item>
@@ -290,19 +223,18 @@ function VehicleGenerator() {
                   onClick={handleStopGeneration}
                   disabled={!isGenerating || stopGenerationResult.loading}
                 >
-                  Detener Simulación
+                  {T.translate("vehicle_generator.stop_simulation")}
                 </Button>
               </Grid>
               <Grid item>
                 <Chip
                   icon={<Icon>{isGenerating ? "autorenew" : "pause"}</Icon>}
-                  label={`Polling: ${isGenerating ? "Activo" : "Inactivo"}`}
+                  label={`${T.translate("vehicle_generator.polling")}: ${isGenerating ? T.translate("vehicle_generator.active") : T.translate("vehicle_generator.inactive")}`}
                   color={isGenerating ? "primary" : "default"}
                   size="small"
                 />
               </Grid>
             </Grid>
-            
           </CardContent>
         </Card>
       </FuseAnimate>
@@ -313,7 +245,7 @@ function VehicleGenerator() {
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} sm={6}>
                 <Typography variant="h6" className="mb-8">
-                  Estado:
+                  {T.translate("vehicle_generator.status")}:
                   <span
                     className={
                       isGenerating
@@ -321,7 +253,9 @@ function VehicleGenerator() {
                         : classes.statusStopped
                     }
                   >
-                    {isGenerating ? " Corriendo..." : " Detenido"}
+                    {isGenerating
+                      ? ` ${T.translate("vehicle_generator.running")}...`
+                      : ` ${T.translate("vehicle_generator.stopped")}`}
                   </span>
                 </Typography>
               </Grid>
@@ -329,13 +263,13 @@ function VehicleGenerator() {
                 <div className="flex flex-wrap justify-end">
                   <Chip
                     icon={<Icon>timeline</Icon>}
-                    label={`Vehículos generados: ${vehicleCount.toLocaleString()}`}
+                    label={`${T.translate("vehicle_generator.vehicles_generated")}: ${vehicleCount.toLocaleString()}`}
                     className={classes.statsChip}
                     color="primary"
                   />
                   <Chip
                     icon={<Icon>storage</Icon>}
-                    label={`En tabla: ${generatedVehicles.length.toLocaleString()}`}
+                    label={`${T.translate("vehicle_generator.in_table")}: ${generatedVehicles.length.toLocaleString()}`}
                     className={classes.statsChip}
                     color="secondary"
                   />
@@ -350,7 +284,7 @@ function VehicleGenerator() {
         <Paper className="mt-24">
           <div className="p-16">
             <Typography variant="h6" className="mb-16">
-              Vehículos en Tiempo Real ({generatedVehicles.length})
+              {T.translate("vehicle_generator.real_time_vehicles")} ({generatedVehicles.length})
             </Typography>
             <VehicleGeneratorTable
               vehicles={generatedVehicles}
